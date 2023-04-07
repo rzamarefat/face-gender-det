@@ -10,7 +10,8 @@ class GenderDataset(Dataset):
 
         self.transforms = T.Compose([
             T.ToTensor(),
-            T.Resize(self.image_size)
+            T.Resize(self.image_size),
+            T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
         self.label_encoder = {
