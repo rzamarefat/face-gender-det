@@ -7,7 +7,7 @@ import numpy as np
 
 class MTCNNFaceDetector:
     def __init__(self):
-        self.device = torch.device('cpu')
+        self.device = torch.device('cuda')
         self.mtcnn = MTCNN(keep_all=True, device=self.device, selection_method='largest')
         self._crop_size = (112, 112)
         self._refrence = get_reference_facial_points(default_square=self._crop_size[0] == self._crop_size[1])
