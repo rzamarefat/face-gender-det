@@ -2,3 +2,5 @@ Dataset
 cropped_faces
 GenClassDataset.zip
 src/__pycache__
+weights
+TRAIN_REPORT.txt

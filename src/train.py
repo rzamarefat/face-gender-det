@@ -8,10 +8,11 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 
 # =====> config
-BATCH_SIZE = 32
+BATCH_SIZE = 512
 MODEL_NAME = "efficientnet_b7" #"mobilenet_v2"
 EPOCHS = 100
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+# DEVICE = 'cpu'
 INITIAL_LEARNING_RATE = 3e-4
 ROOT_PATH_TO_TRAIN_IMAGES = "/home/rmarefat/projects/github/face_gender_det/cropped_faces/Train"
 ROOT_PATH_TO_VAL_IMAGES = "/home/rmarefat/projects/github/face_gender_det/cropped_faces/Validation"
@@ -20,7 +21,8 @@ PATH_TO_SAVE_CKPT = f"/home/rmarefat/projects/github/face_gender_det/src/weights
 
 def train_step(model, optimizer, criterion, imgs, labels):
     out = model(imgs)
-    loss = criterion(out, y)
+    # out = torch.squeeze(out, dim=1)
+    loss = criterion(torch.squeeze(out, dim=1), labels)
     
     optimizer.zero_grad()
     loss.backward()
@@ -29,20 +31,20 @@ def train_step(model, optimizer, criterion, imgs, labels):
     preds = torch.argmax(out, dim=1)
     preds = preds.detach().to('cpu').numpy()
     
-    y = y.detach().to("cpu").numpy()
-    train_acc = accuracy_score(y, preds)
+    labels = labels.detach().to("cpu").numpy()
+    train_acc = accuracy_score(labels, preds)
     
     return train_acc, loss.item()
 
-def val_step():
+def val_step(model, criterion, imgs, labels):
     out = model(imgs)
-    loss = criterion(out, y)
+    loss = criterion(torch.squeeze(out, dim=1), labels)
 
     preds = torch.argmax(out, dim=1)
     preds = preds.detach().to('cpu').numpy()
     
-    y = y.detach().to("cpu").numpy()
-    validation_acc = accuracy_score(y, preds)
+    labels = labels.detach().to("cpu").numpy()
+    validation_acc = accuracy_score(labels, preds)
 
     return validation_acc, loss.item()
 
@@ -87,7 +89,7 @@ def run_engine():
     model = get_model(model_name=MODEL_NAME)
     model.to(DEVICE)
     optimizer = optimizer = torch.optim.Adam(model.parameters(), lr=INITIAL_LEARNING_RATE)
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.BCEWithLogitsLoss()
     min_val_loss = 10 ** 10
 
     for epoch in range(1, EPOCHS + 1):
@@ -98,24 +100,28 @@ def run_engine():
         running_train_loss = []
         running_val_loss = []
 
+        model.train()
         for imgs, labels in tqdm(train_loader):
-            imgs, labels = imgs.to(DEVICE), labels.to(DEVICE)
-
-            model.train()
-            train_acc, train_loss.item() = train_step(model, optimizer, criterion, imgs, labels)
-
-            model.eval()
-            val_acc, val_loss.item() = val_step(model, optimizer, criterion, imgs, labels)
-
+            imgs, labels = imgs.to(DEVICE), labels.type(torch.FloatTensor).to(DEVICE)
+            train_acc, train_loss = train_step(model, optimizer, criterion, imgs, labels)
             running_train_acc.append(train_acc)
             running_train_loss.append(train_loss)
-            running_val_acc.append(val_acc)
-            running_val_loss.append(val_loss)
+            
 
-        epoch_train_acc = round(sum(train_acc) / len(train_acc), 2)
-        epoch_train_loss = round(sum(train_loss) / len(train_loss), 2)
-        epoch_val_acc = round(sum(val_acc) / len(val_acc), 2)
-        epoch_val_loss = round(sum(val_loss) / len(val_loss), 2)
+        model.eval()
+        with torch.no_grad():
+            for imgs, labels in tqdm(val_loader):
+                imgs, labels = imgs.to(DEVICE), labels.type(torch.FloatTensor).to(DEVICE)
+                val_acc, val_loss = val_step(model, criterion, imgs, labels)
+                running_val_acc.append(val_acc)
+                running_val_loss.append(val_loss)
+                
+            
+
+        epoch_train_acc = round(sum(running_train_acc) / len(running_train_acc), 2)
+        epoch_train_loss = round(sum(running_train_loss) / len(running_train_loss), 2)
+        epoch_val_acc = round(sum(running_val_acc) / len(running_val_acc), 2)
+        epoch_val_loss = round(sum(running_val_loss) / len(running_val_loss), 2)
 
 
         report_statement = f"Epoch {epoch} | train_acc {epoch_train_acc} | train_loss {epoch_train_loss} | val_acc {epoch_val_acc} | val_loss {epoch_val_loss}"
