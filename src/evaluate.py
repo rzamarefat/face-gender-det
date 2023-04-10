@@ -8,6 +8,7 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from train import get_model
 import matplotlib.pyplot as plt
+
 import numpy as np
 
 
@@ -50,7 +51,7 @@ def run_evaluation():
             labels = labels.detach().to("cpu").numpy()
             all_labels.extend([l for l in labels])
             all_preds.extend([p for p in preds])
-            break
+            
 
 
         all_labels = np.array(all_labels)
@@ -62,8 +63,11 @@ def run_evaluation():
         # print(f"TN {tn} | FP {fp} | FN {fn} | TP {tp}")
         
         cm = confusion_matrix(all_labels, all_preds, labels=[1., 0.])
-        # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[1., 0.])
-        disp.figure_.savefig('eff.png')
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["FEMALE", "MALE"]).plot()
+        
+        
+        plt.savefig("EfficientNet-B7")
+
         
         
 

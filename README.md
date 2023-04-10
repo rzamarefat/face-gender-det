@@ -4,6 +4,5 @@
 #### Results
 The following demonstrates the confusion matrix obtained the different models:
 - EfficientNet-B7
-Attempt | #1 | #2 | #3 | #4 | #5 | #6 | #7 | #8 | #9 | #10 | #11
---- | --- | --- | --- |--- |--- |--- |--- |--- |--- |--- |---
-Seconds | 301 | 283 | 290 | 286 | 289 | 285 | 287 | 287 | 272 | 276 | 269
+![Screenshot from 2023-04-11 00-10-42](https://user-images.githubusercontent.com/79300456/230994359-b1cb4402-9187-49ab-ab71-e3213382f73f.png)
+
