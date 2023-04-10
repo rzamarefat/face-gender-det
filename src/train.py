@@ -8,8 +8,8 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 
 # =====> config
-BATCH_SIZE = 512
-MODEL_NAME = "efficientnet_b7" #"mobilenet_v2"
+BATCH_SIZE = 120
+MODEL_NAME = "efficientnet_b7" #"resnet101" #"mobilenet_v2"  
 EPOCHS = 100
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 # DEVICE = 'cpu'
@@ -22,7 +22,9 @@ PATH_TO_SAVE_CKPT = f"/home/rmarefat/projects/github/face_gender_det/src/weights
 def train_step(model, optimizer, criterion, imgs, labels):
     out = model(imgs)
     # out = torch.squeeze(out, dim=1)
-    loss = criterion(torch.squeeze(out, dim=1), labels)
+    # loss = criterion(torch.squeeze(out, dim=1), labels)
+    loss = criterion(out, labels)
+    
     
     optimizer.zero_grad()
     loss.backward()
@@ -38,7 +40,9 @@ def train_step(model, optimizer, criterion, imgs, labels):
 
 def val_step(model, criterion, imgs, labels):
     out = model(imgs)
-    loss = criterion(torch.squeeze(out, dim=1), labels)
+    
+    # loss = criterion(torch.squeeze(out, dim=1), labels)
+    loss = criterion(out, labels)
 
     preds = torch.argmax(out, dim=1)
     preds = preds.detach().to('cpu').numpy()
@@ -66,30 +70,41 @@ def get_loaders():
 
 
     
-def get_model(model_name):
+def get_model(model_name, use_ckpt=False):
     if model_name == "efficientnet_b7":
         model = torchvision.models.efficientnet_b7(pretrained=True)
 
         model.classifier = torch.nn.Sequential(
             torch.nn.Dropout(p=0.5, inplace=True),
-            torch.nn.Linear(in_features=2560, out_features=1)
+            torch.nn.Linear(in_features=2560, out_features=2)
         )
+
+        if os.path.isfile(PATH_TO_SAVE_CKPT) and use_ckpt:
+            model.load_state_dict(torch.load(PATH_TO_SAVE_CKPT))
+            print("====> The ckpt is loaded!")
 
         for n,p in model.named_parameters():
             p.requires_grad = False
             if n.__contains__("features.8") or n.__contains__("features.7") or n.__contains__("classifier"):
                 p.requires_grad = True
 
-        return model
+
+    if model_name == "resnet101":
+        model = torchvision.models.resnet101(pretrained=True)
+        model.fc = torch.nn.Linear(in_features=2048, out_features=1, bias=True)
+        
+    return model
     
 
 
 def run_engine():
     train_loader, val_loader = get_loaders()
     model = get_model(model_name=MODEL_NAME)
+
     model.to(DEVICE)
     optimizer = optimizer = torch.optim.Adam(model.parameters(), lr=INITIAL_LEARNING_RATE)
-    criterion = torch.nn.BCEWithLogitsLoss()
+    # criterion = torch.nn.BCEWithLogitsLoss()
+    criterion = torch.nn.CrossEntropyLoss()
     min_val_loss = 10 ** 10
 
     for epoch in range(1, EPOCHS + 1):
@@ -102,7 +117,8 @@ def run_engine():
 
         model.train()
         for imgs, labels in tqdm(train_loader):
-            imgs, labels = imgs.to(DEVICE), labels.type(torch.FloatTensor).to(DEVICE)
+            # imgs, labels = imgs.to(DEVICE), labels.type(torch.FloatTensor).to(DEVICE)
+            imgs, labels = imgs.to(DEVICE), labels.type(torch.LongTensor).to(DEVICE)
             train_acc, train_loss = train_step(model, optimizer, criterion, imgs, labels)
             running_train_acc.append(train_acc)
             running_train_loss.append(train_loss)
@@ -111,7 +127,8 @@ def run_engine():
         model.eval()
         with torch.no_grad():
             for imgs, labels in tqdm(val_loader):
-                imgs, labels = imgs.to(DEVICE), labels.type(torch.FloatTensor).to(DEVICE)
+                # imgs, labels = imgs.to(DEVICE), labels.type(torch.FloatTensor).to(DEVICE)
+                imgs, labels = imgs.to(DEVICE), labels.type(torch.LongTensor).to(DEVICE)
                 val_acc, val_loss = val_step(model, criterion, imgs, labels)
                 running_val_acc.append(val_acc)
                 running_val_loss.append(val_loss)
@@ -134,10 +151,6 @@ def run_engine():
 
         if epoch_val_loss < min_val_loss:
             torch.save(model.state_dict(), PATH_TO_SAVE_CKPT)
-            
-
-
-
 
 if __name__ == "__main__":
     run_engine()

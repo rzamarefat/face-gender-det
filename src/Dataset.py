@@ -11,7 +11,7 @@ class GenderDataset(Dataset):
         self.transforms = T.Compose([
             T.ToTensor(),
             T.Resize(self.image_size),
-            T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            # T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
         self.label_encoder = {
@@ -30,6 +30,8 @@ class GenderDataset(Dataset):
         
         img = Image.open(target_img_path)
 
+        img.save("name.jpg")
+
         img = self.transforms(img)
 
         return img, label
@@ -42,3 +44,4 @@ if __name__ == "__main__":
     for imgs, labels in gen_ds:
         print(imgs.shape)
         print(labels)
+        break
