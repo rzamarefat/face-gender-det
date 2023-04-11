@@ -11,7 +11,6 @@ class GenderDataset(Dataset):
         self.transforms = T.Compose([
             T.ToTensor(),
             T.Resize(self.image_size),
-            # T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
         self.label_encoder = {
@@ -29,8 +28,6 @@ class GenderDataset(Dataset):
         label = self.label_encoder[target_img_label]
         
         img = Image.open(target_img_path)
-
-        img.save("name.jpg")
 
         img = self.transforms(img)
 
