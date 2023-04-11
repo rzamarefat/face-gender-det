@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score
 
 # =====> config
 BATCH_SIZE = 120
-MODEL_NAME = "efficientnet_b7" #"resnet101" #"mobilenet_v2"  
+MODEL_NAME = "resnet101" #"efficientnet_b7"  #"mobilenet_v2"  
 EPOCHS = 100
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 # DEVICE = 'cpu'
@@ -91,7 +91,12 @@ def get_model(model_name, use_ckpt=False):
 
     if model_name == "resnet101":
         model = torchvision.models.resnet101(pretrained=True)
-        model.fc = torch.nn.Linear(in_features=2048, out_features=1, bias=True)
+        model.fc = torch.nn.Linear(in_features=2048, out_features=2, bias=True)
+
+        for n,p in model.named_parameters():
+            p.requires_grad = False
+            if n.__contains__("layer4") or n.__contains__("fc"):
+                p.requires_grad = True
         
     return model
     

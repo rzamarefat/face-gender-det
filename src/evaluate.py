@@ -14,7 +14,7 @@ import numpy as np
 
 # =====> config
 BATCH_SIZE = 120
-MODEL_NAME = "efficientnet_b7" #"resnet101" #"mobilenet_v2"  
+MODEL_NAME = "resnet101" #"efficientnet_b7"  #"mobilenet_v2"  
 EPOCHS = 100
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 # DEVICE = 'cpu'
@@ -28,7 +28,7 @@ PATH_TO_SAVE_CKPT = f"/home/rmarefat/projects/github/face_gender_det/src/weights
 def run_evaluation():
     model = get_model(model_name=MODEL_NAME)
 
-    model.load_state_dict(torch.load("/home/rmarefat/projects/github/face_gender_det/src/weights/model__efficientnet_b7.pt"))
+    model.load_state_dict(torch.load(PATH_TO_SAVE_CKPT))
 
     model.to(DEVICE)
 
@@ -66,14 +66,10 @@ def run_evaluation():
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["FEMALE", "MALE"]).plot()
         
         
-        plt.savefig("EfficientNet-B7")
+        plt.savefig("ResNet101")
 
         
-        
-
-
-
-
+    
 
 if __name__ == "__main__":
     run_evaluation()
